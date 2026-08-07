@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dětské pexeso</title>
+<style>
+  :root{
+    --bg1:#fff8e8;
+    --bg2:#e9f7ff;
+    --accent:#ff9f43;
+    --accent2:#5dade2;
+    --text:#354052;
+    --card:#ffffff;
+    --shadow:0 8px 22px rgba(53,64,82,.14);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    color:var(--text); background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    display:flex; justify-content:center; padding:16px;
+  }
+  .game{width:min(760px,100%); text-align:center}
+  h1{margin:6px 0 4px;font-size:clamp(2rem,6vw,3.2rem);color:#f08a24}
+  .subtitle{margin:0 0 14px;font-size:clamp(.95rem,3vw,1.1rem)}
+  .toolbar{
+    display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;
+    margin-bottom:14px
+  }
+  .sizes,.modes{display:flex;gap:6px}
+  .sizes button,.modes button{
+    border:0;background:white;color:var(--text);font-weight:700;padding:9px 15px;
+    border-radius:999px;box-shadow:var(--shadow);cursor:pointer;transition:.2s
+  }
+  .sizes button.active,.sizes button:hover,.modes button.active,.modes button:hover{
+    background:var(--accent);color:white;transform:translateY(-1px)
+  }
+  .new{
+    border:0;background:#5dade2;color:white;font-weight:800;padding:10px 17px;
+    border-radius:999px;box-shadow:var(--shadow);cursor:pointer
+  }
+  .players{
+    display:flex;justify-content:center;gap:10px;margin:6px auto 10px;
+    width:min(100%,520px);
+  }
+  .player{
+    flex:1;background:white;padding:10px 12px;border-radius:14px;
+    box-shadow:var(--shadow);font-weight:700;transition:.2s;
+  }
+  .player strong{display:block;font-size:1.25rem;margin-top:2px}
+  .player.active{background:#fff0d8;box-shadow:0 0 0 3px var(--accent),var(--shadow);transform:scale(1.03)}
+  .stats{
+    display:flex;justify-content:center;gap:22px;margin:5px 0 14px;font-weight:700;
+  }
+  .board{
+    display:grid;gap:clamp(7px,1.6vw,13px);margin:auto;
+    width:min(100%,680px);
+  }
+  .board.c8{grid-template-columns:repeat(4,1fr);max-width:520px}
+  .board.c12{grid-template-columns:repeat(4,1fr);max-width:600px}
+  .board.c16{grid-template-columns:repeat(4,1fr);max-width:680px}
+  .card{
+    aspect-ratio:1;border:0;background:transparent;padding:0;perspective:700px;
+    cursor:pointer;min-width:0
+  }
+  .inner{
+    width:100%;height:100%;position:relative;transition:transform .45s;
+    transform-style:preserve-3d
+  }
+  .card.flipped .inner,.card.matched .inner{transform:rotateY(180deg)}
+  .face{
+    position:absolute;inset:0;backface-visibility:hidden;border-radius:18px;
+    display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);
+    user-select:none
+  }
+  .front{
+    background:linear-gradient(145deg,#74c7f5,#5dade2);color:white;
+    font-size:clamp(1.8rem,7vw,3rem)
+  }
+  .front::after{content:"★";opacity:.85}
+  .back{
+    background:var(--card);transform:rotateY(180deg);
+    font-size:clamp(2.3rem,10vw,4.5rem)
+  }
+  .matched .back{box-shadow:0 0 0 4px #78d69b inset,var(--shadow)}
+  .message{
+    min-height:62px;margin-top:16px;font-weight:800;font-size:1.1rem;
+    display:flex;align-items:center;justify-content:center
+  }
+  .win{
+    animation:pop .6s ease infinite alternate;color:#e67e22
+  }
+  @keyframes pop{to{transform:scale(1.06)}}
+  .hint{font-size:.82rem;opacity:.65;margin-top:4px}
+  @media(max-width:430px){
+    body{padding:10px}
+    .board{gap:6px}
+    .face{border-radius:13px}
+    .players{gap:6px}
+    .player{padding:8px 5px;font-size:.9rem}
+    .stats{gap:13px;font-size:.9rem}
+    .sizes button,.modes button{padding:8px 10px}
+  }
+</style>
+</head>
+<body>
+<main class="game">
+  <h1>🧸 Dětské pexeso</h1>
+  <p class="subtitle">Najděte všechny stejné dvojice! Po každé nepodařené dvojici hraje druhý hráč.</p>
+
+  <div class="toolbar">
+    <div class="modes" aria-label="Počet hráčů">
+      <button data-mode="1">👤 1 hráč</button>
+      <button data-mode="2">👥 2 hráči</button>
+    </div>
+    <div class="sizes" aria-label="Počet kartiček">
+      <button data-count="8">8 kartiček</button>
+      <button data-count="12">12 kartiček</button>
+      <button data-count="16">16 kartiček</button>
+    </div>
+    <button class="new" id="newGame">🔄 Nová hra</button>
+  </div>
+
+  <div class="players">
+    <div class="player active" id="player1">👦 Hráč 1 <strong><span id="score1">0</span></strong></div>
+    <div class="player" id="player2">👧 Hráč 2 <strong><span id="score2">0</span></strong></div>
+  </div>
+  <div class="stats">
+    <span>🎯 Tahy: <b id="moves">0</b></span>
+    <span>⭐ Páry: <b id="pairs">0</b></span>
+  </div>
+
+  <section id="board" class="board c8" aria-label="Hrací plocha"></section>
+  <div id="message" class="message"></div>
+  <div class="hint">Zvuky lze vypnout nebo zapnout tlačítkem 🔊</div>
+</main>
+
+<script>
+const symbols = ["🐶","🐱","🦊","🐼","🐸","🦁","🐵","🐰"];
+let count = 8, cards=[], first=null, second=null, lock=false, moves=0, pairs=0;
+let playerCount=2, currentPlayer=1, scores=[0,0];
+let audioEnabled = true, audioCtx = null;
+
+const board = document.getElementById("board");
+const movesEl = document.getElementById("moves");
+const pairsEl = document.getElementById("pairs");
+const message = document.getElementById("message");
+const player1El = document.getElementById("player1");
+const player2El = document.getElementById("player2");
+const score1El = document.getElementById("score1");
+const score2El = document.getElementById("score2");
+
+function audio(){
+  if(!audioEnabled) return null;
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function tone(freq, duration=.09, type="sine", volume=.045, delay=0){
+  const ctx=audio(); if(!ctx) return;
+  const o=ctx.createOscillator(), g=ctx.createGain();
+  o.type=type; o.frequency.value=freq;
+  g.gain.setValueAtTime(0,ctx.currentTime+delay);
+  g.gain.linearRampToValueAtTime(volume,ctx.currentTime+delay+.01);
+  g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+delay+duration);
+  o.connect(g);g.connect(ctx.destination);
+  o.start(ctx.currentTime+delay);o.stop(ctx.currentTime+delay+duration+.02);
+}
+function flipSound(){ tone(520,.06,"sine",.025); }
+function matchSound(){ tone(660,.08,"sine",.035); tone(880,.12,"sine",.035,.08); }
+function wrongSound(){ tone(230,.11,"triangle",.025); }
+function fanfare(){
+  [[523,0],[659,.12],[784,.24],[1047,.38],[784,.52],[1047,.66]].forEach(([f,d])=>tone(f,.16,"sine",.055,d));
+}
+
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  return a;
+}
+function updatePlayers(){
+  player1El.style.display="block";
+  player2El.style.display=playerCount===2 ? "block" : "none";
+  player1El.classList.toggle("active",currentPlayer===1);
+  player2El.classList.toggle("active",currentPlayer===2);
+  score1El.textContent=scores[0];
+  score2El.textContent=scores[1];
+}
+function setMode(n){
+  playerCount=n;
+  document.querySelectorAll(".modes button").forEach(b=>b.classList.toggle("active",+b.dataset.mode===n));
+  start();
+}
+function setSize(n){
+  count=n;
+  document.querySelectorAll(".sizes button").forEach(b=>b.classList.toggle("active",+b.dataset.count===n));
+  start();
+}
+function start(){
+  first=second=null;lock=false;moves=0;pairs=0;currentPlayer=1;scores=[0,0];
+  movesEl.textContent=moves;pairsEl.textContent=pairs;message.textContent="";
+  updatePlayers();
+  const pairSymbols = symbols.slice(0,count/2);
+  cards=shuffle([...pairSymbols,...pairSymbols]);
+  board.className="board c"+count;
+  board.innerHTML="";
+  cards.forEach((s,i)=>{
+    const btn=document.createElement("button");
+    btn.className="card"; btn.dataset.symbol=s; btn.dataset.index=i;
+    btn.setAttribute("aria-label","Skrytá kartička");
+    btn.innerHTML=`<div class="inner"><div class="face front"></div><div class="face back">${s}</div></div>`;
+    btn.addEventListener("click",()=>turn(btn));
+    board.appendChild(btn);
+  });
+}
+function turn(card){
+  if(lock || card===first || card.classList.contains("matched")) return;
+  audio();
+  card.classList.add("flipped"); flipSound();
+  if(!first){first=card;return}
+  second=card; moves++; movesEl.textContent=moves; lock=true;
+  if(first.dataset.symbol===second.dataset.symbol){
+    setTimeout(()=>{
+      first.classList.add("matched");second.classList.add("matched");
+      pairs++;pairsEl.textContent=pairs;scores[currentPlayer-1]++;updatePlayers();matchSound();
+      first=null;second=null;lock=false;
+      if(pairs===count/2){
+        const winner = playerCount===1
+          ? `🌟 Skvělé! Našel jsi všechno za ${moves} tahů!`
+          : (scores[0]===scores[1] ? "🤝 Je to remíza!" :
+             `🏆 Vyhrává Hráč ${scores[0]>scores[1] ? "1 👦" : "2 👧"}!`);
+        message.innerHTML=`<span class="win">🎉 Konec hry! ${winner}</span>`;
+        fanfare();
+      }
+    },350);
+  }else{
+    setTimeout(()=>{
+      first.classList.remove("flipped");second.classList.remove("flipped");
+      wrongSound();first=null;second=null;lock=false;
+      if(playerCount===2){
+        currentPlayer = currentPlayer===1 ? 2 : 1;
+        updatePlayers();
+      }
+    },750);
+  }
+}
+document.querySelectorAll(".sizes button").forEach(b=>b.addEventListener("click",()=>setSize(+b.dataset.count)));
+document.querySelectorAll(".modes button").forEach(b=>b.addEventListener("click",()=>setMode(+b.dataset.mode)));
+document.getElementById("newGame").addEventListener("click",()=>{audio();start()});
+setMode(2);
+</script>
+</body>
+</html>
