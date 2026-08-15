@@ -119,6 +119,7 @@
       <button data-count="16">16 kartiček</button>
     </div>
     <button class="new" id="newGame">🔄 Nová hra</button>
+    <button class="new" id="soundToggle" type="button" aria-pressed="true">🔊 Zvuk ZAP</button>
   </div>
 
   <div class="players">
@@ -245,6 +246,13 @@ function turn(card){
 document.querySelectorAll(".sizes button").forEach(b=>b.addEventListener("click",()=>setSize(+b.dataset.count)));
 document.querySelectorAll(".modes button").forEach(b=>b.addEventListener("click",()=>setMode(+b.dataset.mode)));
 document.getElementById("newGame").addEventListener("click",()=>{audio();start()});
+document.getElementById("soundToggle").addEventListener("click",()=>{
+  audioEnabled=!audioEnabled;
+  const btn=document.getElementById("soundToggle");
+  btn.textContent=audioEnabled ? "🔊 Zvuk ZAP" : "🔇 Zvuk VYP";
+  btn.setAttribute("aria-pressed",String(audioEnabled));
+  if(audioEnabled) audio();
+});
 setMode(2);
 </script>
 </body>
